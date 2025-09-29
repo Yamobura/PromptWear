@@ -1,5 +1,18 @@
 <template>
-  <div class="app">
+    <StartScreen v-if="showStart" @start="handleStart" />
+
+  <div v-else class="app">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand">PromptWear</div>
+      <a class="gh" :href="githubUrl" target="_blank" rel="noreferrer" v-if="githubUrl" aria-label="GitHub link">
+        <!-- GitHub mark (inline SVG) -->
+        <svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.7 0 8.27c0 3.66 2.29 6.76 5.47 7.85.4.08.55-.18.55-.4 0-.2-.01-.86-.01-1.56-2  .37-2.53-.5-2.69-.96-.09-.24-.48-.96-.82-1.15-.28-.15-.68-.52-.01-.53.63-.01 1.08.59 1.23.83.72 1.21 1.87 .87 2.33.66.07-.54.28-.87.51-1.07-1.78-.2-3.64-.92-3.64-4.09 0-.9.31-1.64.82-2.22-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.85.64-.18 1.33-.27 2.01-.27.68 0 1.37.09 2.01.27 1.53-1.07 2.2-.85 2.2-.85.44 1.1.16 1.92.08 2.12.51.58.82 1.32.82 2.22 0 3.18-1.87 3.89-3.65 4.1.29.26.55.77.55 1.55 0 1.12-.01 2.02-.01 2.29 0 .22.15.48.55.4A8.29 8.29 0 0 0 16 8.27C16 3.7 12.42 0 8 0z"/>
+        </svg>
+      </a>
+    </header>
+    <div class="divider"></div>
     <!-- Stepper -->
     <div class="stepper">
       <button
@@ -115,6 +128,8 @@
 <script setup>
 import StepButtons from "./components/StepButtons.vue";
 import axios from "axios";
+import StartScreen from './components/StartSreen.vue'
+
 import {
   garments,
   silhouettes,
@@ -144,6 +159,14 @@ const selection = reactive({
   pattern: "",
   material: "",
 });
+
+const showStart = ref(true)
+
+function handleStart () {
+  showStart.value = false     // hide start page, show your wizard
+  // optional: step.value = 1  // if you want to force step 1 on start
+}
+
 
 // Reset silhouette when garment changes (avoids mismatched combos)
 watch(
@@ -515,4 +538,23 @@ html,
 .chip.locked {
   opacity: 0.6;
 }
+
+.start-wrap { min-height: 100vh; background:#000; color:#fff; }
+.topbar { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; }
+.brand { font-weight:700; font-size:22px; letter-spacing:0.2px; }
+.gh { color:#ff6b6b; opacity:.85; }
+.gh:hover { opacity:1; }
+.divider { height:3px; background:#0ea5e9; box-shadow:0 0 0 1px rgba(14,165,233,.15) inset; }
+
+.hero { max-width:720px; margin:72px auto 0; text-align:center; padding:0 16px; }
+.hero h1 { font-size:20px; line-height:1.5; margin:0; }
+.lead { margin:14px 0 8px; color:#f3f3f3; line-height:1.7; }
+.muted { color:#cfcfcf; margin:10px 0 26px; }
+
+.start-btn {
+  background:#f43f5e; color:#fff; border:none;
+  padding:12px 32px; border-radius:10px; font-weight:700; font-size:16px;
+  cursor:pointer; box-shadow:0 6px 20px rgba(244,63,94,.25);
+}
+.start-btn:hover { filter:brightness(1.05); }
 </style>

@@ -23,9 +23,20 @@ class GenerateBody(BaseModel):
     seed: Optional[int] = None
     steps: int = 30
     sampler_name: str = "DPM++ 2M SDE"
+    scheduler: str = "Karras"
     cfg_scale: float = 7.0
     width: int = 512
     height: int = 640
+
+    enable_hr: bool = True
+    denoising_strength: float = 0.35     # used by hires fix
+    hr_scale: float = 2.0
+    hr_upscaler: str = "8xNMKDSuperscale_150000G"
+    hr_second_pass_steps: int = 10
+    """ hr_sampler_name: str = ""   """          # empty = “Use same sampler”
+    """ hr_cfg: float = 7.0  """
+
+    
 
 def sd_txt2img(payload: dict) -> List[str]:
     try:
