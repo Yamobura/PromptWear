@@ -1,4 +1,3 @@
-// src/taxonomy.js
 export const garments = ["jacket", "dress", "shirt", "pants", "skirt"];
 
 export const silhouettes = {
@@ -31,7 +30,7 @@ export const patterns = [
   "polka dot",
   "pinstripe",
   "marine stripe",
-  "shepherd’s check",
+  "houndstooth",
   "gingham check",
   "none",
 ];

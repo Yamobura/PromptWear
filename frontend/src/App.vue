@@ -1,13 +1,18 @@
 <template>
-    <StartScreen v-if="showStart" @start="handleStart" />
+  <StartScreen v-if="showStart" @start="handleStart" />
 
   <div v-else class="app">
     <!-- Top bar -->
     <header class="topbar">
-      <div class="brand"> <a href="http://localhost:5173/" >PromptWear</a></div>
-<div>      <a href="#"><img class="github" src="C:\Users\user\Documents\lidia\lidia\thesis\PromptWear\frontend\public\social.png" alt=""></a>
-</div>
-      
+      <div class="brand"><a href="http://localhost:5173/">PromptWear</a></div>
+      <div>
+        <a href="#"
+          ><img
+            class="github"
+            src="C:\Users\user\Documents\cnu\masters thesis\PromptWear\frontend\public\social.png"
+            alt=""
+        /></a>
+      </div>
     </header>
     <div class="divider"></div>
     <!-- Stepper -->
@@ -61,17 +66,21 @@
 
       <!-- Center description -->
       <div class="center">
-        <h2>Description</h2>
-<p class="desc">{{ currentDescription }}</p>
+        <div class="description">
+          <h2>Description</h2>
+          <p class="desc">{{ currentDescription }}</p>
 
-<div class="refs">
-  <img v-for="src in refImages"
-       :key="src"
-       :src="src"
-       class="ref"
-       @error="e => e.target.style.opacity = 0.2"
-  />
-</div>
+          <div class="refs">
+            <img
+              v-for="src in refImages"
+              :key="src"
+              :src="src"
+              class="ref"
+              @error="(e) => (e.target.style.opacity = 0.2)"
+            />
+          </div>
+        </div>
+
         <div class="nav">
           <button @click="prev" :disabled="step === 1">Previous step</button>
           <button @click="next" :disabled="!canNext">
@@ -128,9 +137,8 @@
 <script setup>
 import StepButtons from "./components/StepButtons.vue";
 import axios from "axios";
-import StartScreen from './components/StartSreen.vue'
-import { descriptions } from './data/descriptions.js'
-
+import StartScreen from "./components/StartSreen.vue";
+import { descriptions } from "./data/descriptions.js";
 
 import {
   garments,
@@ -138,7 +146,7 @@ import {
   styles,
   colors,
   patterns,
-  materials
+  materials,
 } from "./taxonomy.js";
 import { reactive, computed, ref, watch } from "vue";
 
@@ -161,13 +169,12 @@ const selection = reactive({
   material: "",
 });
 
-const showStart = ref(true)
+const showStart = ref(true);
 
-function handleStart () {
-  showStart.value = false     // hide start page, show your wizard
+function handleStart() {
+  showStart.value = false; // hide start page, show your wizard
   // optional: step.value = 1  // if you want to force step 1 on start
 }
-
 
 // Reset silhouette when garment changes (avoids mismatched combos)
 watch(
@@ -296,49 +303,68 @@ async function regenerate() {
   await generate();
 }
 
-function slug(s=''){
-  return s.toLowerCase().replace(/[’']/g,'').replace(/\s+/g,'-')
+function slug(s = "") {
+  return s.toLowerCase().replace(/[’']/g, "").replace(/\s+/g, "-");
 }
 
 const currentDescription = computed(() => {
-  const s = selection
+  const s = selection;
   if (step.value === 1 && s.garment) {
-    return descriptions.garment[s.garment] || ''
+    return descriptions.garment[s.garment] || "";
   }
   if (step.value === 2 && s.garment && s.silhouette) {
-    return descriptions.silhouette?.[s.garment]?.[s.silhouette] || ''
+    return descriptions.silhouette?.[s.garment]?.[s.silhouette] || "";
   }
-  if (step.value === 3 && s.style)   return descriptions.style[s.style]   || ''
-  if (step.value === 4 && s.color)   return descriptions.color[s.color]   || ''
-  if (step.value === 5 && s.pattern) return descriptions.pattern[s.pattern]|| ''
-  if (step.value === 6 && s.material)return descriptions.material[s.material]|| ''
-  return 'Choose an option on the left to see its description and references.'
-})
+  if (step.value === 3 && s.style) return descriptions.style[s.style] || "";
+  if (step.value === 4 && s.color) return descriptions.color[s.color] || "";
+  if (step.value === 5 && s.pattern)
+    return descriptions.pattern[s.pattern] || "";
+  if (step.value === 6 && s.material)
+    return descriptions.material[s.material] || "";
+  return "Choose an option on the left to see its description and references.";
+});
 
 // build 5 sample image URLs from /public/samples/...
-function range(n){ return Array.from({length:n},(_,i)=>i+1) }
+function range(n) {
+  return Array.from({ length: n }, (_, i) => i + 1);
+}
 const refImages = computed(() => {
-  const base = '/samples'
+  const base = "/samples";
   if (step.value === 1 && selection.garment) {
-    return range(5).map(i => `${base}/garment/${slug(selection.garment)}/${i}.png`)
+    return range(5).map(
+      (i) => `${base}/garment/${slug(selection.garment)}/${i}.png`
+    );
   }
   if (step.value === 2 && selection.garment && selection.silhouette) {
-    return range(5).map(i => `${base}/silhouette/${slug(selection.garment)}/${slug(selection.silhouette)}/${i}.jpg`)
+    return range(5).map(
+      (i) =>
+        `${base}/silhouette/${slug(selection.garment)}/${slug(
+          selection.silhouette
+        )}/${i}.jpg`
+    );
   }
   if (step.value === 3 && selection.style) {
-    return range(5).map(i => `${base}/style/${slug(selection.style)}/${i}.jpg`)
+    return range(5).map(
+      (i) => `${base}/style/${slug(selection.style)}/${i}.jpg`
+    );
   }
   if (step.value === 4 && selection.color) {
-    return range(5).map(i => `${base}/color/${slug(selection.color)}/${i}.jpg`)
+    return range(5).map(
+      (i) => `${base}/color/${slug(selection.color)}/${i}.jpg`
+    );
   }
   if (step.value === 5 && selection.pattern) {
-    return range(5).map(i => `${base}/pattern/${slug(selection.pattern)}/${i}.jpg`)
+    return range(5).map(
+      (i) => `${base}/pattern/${slug(selection.pattern)}/${i}.jpg`
+    );
   }
   if (step.value === 6 && selection.material) {
-    return range(5).map(i => `${base}/material/${slug(selection.material)}/${i}.jpg`)
+    return range(5).map(
+      (i) => `${base}/material/${slug(selection.material)}/${i}.jpg`
+    );
   }
-  return []
-})
+  return [];
+});
 
 function saveImage() {
   if (!image.value) return;
@@ -412,21 +438,27 @@ html,
     Noto Sans, Arial;
 }
 
+.left {
+  margin-top: 50px;
+}
+
 .stepper {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 16px;
+  justify-content: center;
 }
 .chip {
-    padding: 8px 14px;
-    border: 2px solid #fff3;
-    border-radius: 999px;
-    color: #f43f5e;
-    background: #ffff;
-    cursor: pointer;
-    border-color: #f43f5e;
+  padding: 8px 14px;
+  border: 2px solid #f43f5e;
+  border-radius: 999px;
+  color: #f43f5e;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 11pt;
 }
+
 .chip.active {
   background: var(--rose);
   color: #ffff;
@@ -481,6 +513,9 @@ html,
   border-radius: 12px;
   min-height: 100px;
   white-space: pre-wrap;
+  margin-top: 24px;
+  max-width: 285px;
+  margin-left: 30px;
 }
 .generate {
   width: 100%;
@@ -551,11 +586,12 @@ html,
   cursor: not-allowed;
 }
 
-.github
-{
-  height: 36px;;
+.description {
+  min-height: 350px;
 }
-
+.github {
+  height: 36px;
+}
 
 .image-placeholder {
   width: 460px;
@@ -574,38 +610,69 @@ html,
   flex-wrap: wrap;
   margin-bottom: 16px;
 }
-.chip {
-  padding: 8px 14px;
-  border: 1px solid #fff3;
-  border-radius: 999px;
+
+.start-wrap {
+  background: #000;
   color: #fff;
-  background: #111;
-  cursor: pointer;
 }
-.chip.active {
-  background: #f43f5e;
-  border-color: #fda4af;
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
 }
-.chip.locked {
-  opacity: 0.6;
+.brand {
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.2px;
+}
+.gh {
+  color: #ff6b6b;
+  opacity: 0.85;
+}
+.gh:hover {
+  opacity: 1;
+}
+.divider {
+  height: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.15) inset;
+  margin-bottom: 30px;
 }
 
-.start-wrap { min-height: 100vh; background:#000; color:#fff; }
-.topbar { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; }
-.brand { font-weight:700; font-size:22px; letter-spacing:0.2px; }
-.gh { color:#ff6b6b; opacity:.85; }
-.gh:hover { opacity:1; }
-.divider { height:2px; background:#ffffff; box-shadow:0 0 0 1px rgba(14,165,233,.15) inset; margin-bottom: 30px; }
-
-.hero { max-width:720px; margin:72px auto 0; text-align:center; padding:0 16px; }
-.hero h1 { font-size:20px; line-height:1.5; margin:0; }
-.lead { margin:14px 0 8px; color:#f3f3f3; line-height:1.7; }
-.muted { color:#cfcfcf; margin:10px 0 26px; }
+.hero {
+  max-width: 720px;
+  margin: 72px auto 0;
+  text-align: center;
+  padding: 0 16px;
+}
+.hero h1 {
+  font-size: 20px;
+  line-height: 1.5;
+  margin: 0;
+}
+.lead {
+  margin: 14px 0 8px;
+  color: #f3f3f3;
+  line-height: 1.7;
+}
+.muted {
+  color: #cfcfcf;
+  margin: 10px 0 26px;
+}
 
 .start-btn {
-  background:#f43f5e; color:#fff; border:none;
-  padding:12px 32px; border-radius:10px; font-weight:700; font-size:16px;
-  cursor:pointer; box-shadow:0 6px 20px rgba(244,63,94,.25);
+  background: #f43f5e;
+  color: #fff;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.25);
 }
-.start-btn:hover { filter:brightness(1.05); }
+.start-btn:hover {
+  filter: brightness(1.05);
+}
 </style>

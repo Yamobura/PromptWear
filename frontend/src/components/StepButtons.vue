@@ -24,17 +24,14 @@ defineEmits(["update:modelValue"]);
 }
 .btn {
   padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid #fff3;
-  color: #fff;
-  background: #ffffff0f;
-  text-align: left;
+  border: 2px solid #f8657e;
+  color: #f8657e;
+  background: #ffffff;
+  text-align: center;
+  max-width: 175px;
 }
 .btn-active {
   background: #f43f5e;
-  border-color: #fda4af;
-}
-.btn:hover {
-  background: #ffffff1f;
+  color: #ffffff;
 }
 </style>
