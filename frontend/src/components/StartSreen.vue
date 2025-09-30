@@ -1,4 +1,11 @@
 <template>
+        <header class="topbar">
+      <div class="brand"> <a href="http://localhost:5173/" >PromptWear</a></div>
+<div>      <a href="#"><img class="github" src="C:\Users\user\Documents\lidia\lidia\thesis\PromptWear\frontend\public\social.png" alt=""></a>
+</div>
+      
+    </header>
+    <div class="divider"></div>
   <div class="start-wrap">
     
 

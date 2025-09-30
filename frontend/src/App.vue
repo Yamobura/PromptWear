@@ -4,13 +4,10 @@
   <div v-else class="app">
     <!-- Top bar -->
     <header class="topbar">
-      <div class="brand">PromptWear</div>
-      <a class="gh" :href="githubUrl" target="_blank" rel="noreferrer" v-if="githubUrl" aria-label="GitHub link">
-        <!-- GitHub mark (inline SVG) -->
-        <svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor">
-          <path d="M8 0C3.58 0 0 3.7 0 8.27c0 3.66 2.29 6.76 5.47 7.85.4.08.55-.18.55-.4 0-.2-.01-.86-.01-1.56-2  .37-2.53-.5-2.69-.96-.09-.24-.48-.96-.82-1.15-.28-.15-.68-.52-.01-.53.63-.01 1.08.59 1.23.83.72 1.21 1.87 .87 2.33.66.07-.54.28-.87.51-1.07-1.78-.2-3.64-.92-3.64-4.09 0-.9.31-1.64.82-2.22-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.85.64-.18 1.33-.27 2.01-.27.68 0 1.37.09 2.01.27 1.53-1.07 2.2-.85 2.2-.85.44 1.1.16 1.92.08 2.12.51.58.82 1.32.82 2.22 0 3.18-1.87 3.89-3.65 4.1.29.26.55.77.55 1.55 0 1.12-.01 2.02-.01 2.29 0 .22.15.48.55.4A8.29 8.29 0 0 0 16 8.27C16 3.7 12.42 0 8 0z"/>
-        </svg>
-      </a>
+      <div class="brand"> <a href="http://localhost:5173/" >PromptWear</a></div>
+<div>      <a href="#"><img class="github" src="C:\Users\user\Documents\lidia\lidia\thesis\PromptWear\frontend\public\social.png" alt=""></a>
+</div>
+      
     </header>
     <div class="divider"></div>
     <!-- Stepper -->
@@ -65,10 +62,16 @@
       <!-- Center description -->
       <div class="center">
         <h2>Description</h2>
-        <p class="desc">{{ describe() }}</p>
-        <div class="refs">
-          <div v-for="n in 5" :key="n" class="ref"></div>
-        </div>
+<p class="desc">{{ currentDescription }}</p>
+
+<div class="refs">
+  <img v-for="src in refImages"
+       :key="src"
+       :src="src"
+       class="ref"
+       @error="e => e.target.style.opacity = 0.2"
+  />
+</div>
         <div class="nav">
           <button @click="prev" :disabled="step === 1">Previous step</button>
           <button @click="next" :disabled="!canNext">
@@ -81,9 +84,6 @@
       <div class="right">
         <h2>Design prompt</h2>
         <div class="prompt-box">{{ naturalPrompt }}</div>
-        <button class="generate" @click="generate" :disabled="!readyToGenerate">
-          Generate
-        </button>
       </div>
     </div>
 
@@ -129,6 +129,8 @@
 import StepButtons from "./components/StepButtons.vue";
 import axios from "axios";
 import StartScreen from './components/StartSreen.vue'
+import { descriptions } from './data/descriptions.js'
+
 
 import {
   garments,
@@ -136,8 +138,7 @@ import {
   styles,
   colors,
   patterns,
-  materials,
-  descriptions,
+  materials
 } from "./taxonomy.js";
 import { reactive, computed, ref, watch } from "vue";
 
@@ -295,6 +296,50 @@ async function regenerate() {
   await generate();
 }
 
+function slug(s=''){
+  return s.toLowerCase().replace(/[’']/g,'').replace(/\s+/g,'-')
+}
+
+const currentDescription = computed(() => {
+  const s = selection
+  if (step.value === 1 && s.garment) {
+    return descriptions.garment[s.garment] || ''
+  }
+  if (step.value === 2 && s.garment && s.silhouette) {
+    return descriptions.silhouette?.[s.garment]?.[s.silhouette] || ''
+  }
+  if (step.value === 3 && s.style)   return descriptions.style[s.style]   || ''
+  if (step.value === 4 && s.color)   return descriptions.color[s.color]   || ''
+  if (step.value === 5 && s.pattern) return descriptions.pattern[s.pattern]|| ''
+  if (step.value === 6 && s.material)return descriptions.material[s.material]|| ''
+  return 'Choose an option on the left to see its description and references.'
+})
+
+// build 5 sample image URLs from /public/samples/...
+function range(n){ return Array.from({length:n},(_,i)=>i+1) }
+const refImages = computed(() => {
+  const base = '/samples'
+  if (step.value === 1 && selection.garment) {
+    return range(5).map(i => `${base}/garment/${slug(selection.garment)}/${i}.png`)
+  }
+  if (step.value === 2 && selection.garment && selection.silhouette) {
+    return range(5).map(i => `${base}/silhouette/${slug(selection.garment)}/${slug(selection.silhouette)}/${i}.jpg`)
+  }
+  if (step.value === 3 && selection.style) {
+    return range(5).map(i => `${base}/style/${slug(selection.style)}/${i}.jpg`)
+  }
+  if (step.value === 4 && selection.color) {
+    return range(5).map(i => `${base}/color/${slug(selection.color)}/${i}.jpg`)
+  }
+  if (step.value === 5 && selection.pattern) {
+    return range(5).map(i => `${base}/pattern/${slug(selection.pattern)}/${i}.jpg`)
+  }
+  if (step.value === 6 && selection.material) {
+    return range(5).map(i => `${base}/material/${slug(selection.material)}/${i}.jpg`)
+  }
+  return []
+})
+
 function saveImage() {
   if (!image.value) return;
   const a = document.createElement("a");
@@ -366,9 +411,7 @@ html,
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
     Noto Sans, Arial;
 }
-.app {
-  padding: 24px;
-}
+
 .stepper {
   display: flex;
   gap: 8px;
@@ -376,14 +419,17 @@ html,
   margin-bottom: 16px;
 }
 .chip {
-  padding: 8px 14px;
-  border: 1px solid #fff3;
-  border-radius: 999px;
-  color: #fff;
+    padding: 8px 14px;
+    border: 2px solid #fff3;
+    border-radius: 999px;
+    color: #f43f5e;
+    background: #ffff;
+    cursor: pointer;
+    border-color: #f43f5e;
 }
 .chip.active {
   background: var(--rose);
-  border-color: #fda4af;
+  color: #ffff;
 }
 .grid {
   display: grid;
@@ -407,13 +453,12 @@ html,
 .refs {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
   margin-top: 10px;
 }
 .ref {
   background: #ffffff1a;
-  border-radius: 8px;
-  height: 80px;
+  border-radius: 0px;
+  height: 200px;
 }
 .nav {
   margin-top: 16px;
@@ -506,6 +551,12 @@ html,
   cursor: not-allowed;
 }
 
+.github
+{
+  height: 36px;;
+}
+
+
 .image-placeholder {
   width: 460px;
   height: 460px;
@@ -544,7 +595,7 @@ html,
 .brand { font-weight:700; font-size:22px; letter-spacing:0.2px; }
 .gh { color:#ff6b6b; opacity:.85; }
 .gh:hover { opacity:1; }
-.divider { height:3px; background:#0ea5e9; box-shadow:0 0 0 1px rgba(14,165,233,.15) inset; }
+.divider { height:2px; background:#ffffff; box-shadow:0 0 0 1px rgba(14,165,233,.15) inset; margin-bottom: 30px; }
 
 .hero { max-width:720px; margin:72px auto 0; text-align:center; padding:0 16px; }
 .hero h1 { font-size:20px; line-height:1.5; margin:0; }
