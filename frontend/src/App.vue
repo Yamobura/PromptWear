@@ -9,7 +9,7 @@
         <a href="#"
           ><img
             class="github"
-            src="C:\Users\user\Documents\cnu\masters thesis\PromptWear\frontend\public\social.png"
+            src="/social.png"
             alt=""
         /></a>
       </div>
@@ -84,7 +84,7 @@
         <div class="nav">
           <button @click="prev" :disabled="step === 1">Previous step</button>
           <button @click="next" :disabled="!canNext">
-            Next: {{ nextLabel }}
+            Next step
           </button>
         </div>
       </div>
@@ -104,7 +104,7 @@
         <p class="prompt-preview">{{ naturalPrompt }}</p>
 
         <button
-          class="btn-act primary"
+          class="btn-act"
           @click="generate"
           :disabled="!readyToGenerate"
         >
@@ -112,14 +112,39 @@
         </button>
       </div>
 
+      
       <!-- middle: image -->
-      <div class="result-image">
-        <h2>Result</h2>
-        <div class="image-wrap" v-if="image">
-          <img :src="'data:image/png;base64,' + image" alt="generated" />
-        </div>
-        <div v-else class="image-placeholder">No image yet</div>
+<!-- middle: image -->
+<div class="result-image">
+  <h2>Result</h2>
+
+  <div class="image-wrap">
+    <!-- Render only if there is a preview or final image -->
+    <img
+      v-if="isLoading ? previewImage : image"
+      :src="'data:image/png;base64,' + (isLoading ? previewImage : image)"
+      alt="generated"
+      class="result-img"
+      :class="{ loading: isLoading }"
+    />
+
+    <!-- Overlay progress while generating -->
+    <div v-if="isLoading" class="overlay">
+      <div class="overlay-card">
+        <p class="overlay-title">Generating: {{ progress.toFixed(1) }}%</p>
+        <progress class="progress-bar" :value="progress" max="100"></progress>
       </div>
+    </div>
+
+    <!-- Placeholder text if no image has been generated yet -->
+    <div v-if="!isLoading && !image" class="placeholder">
+      <p>No image generated yet</p>
+    </div>
+  </div>
+</div>
+
+
+
 
       <!-- right: actions -->
       <div class="result-actions">
@@ -129,7 +154,6 @@
         <button class="btn-act" @click="resetAll">From the beginning</button>
       </div>
 
-      <div class="nav"><button @click="prev">Previous step</button></div>
     </div>
   </div>
 </template>
@@ -237,71 +261,141 @@ const naturalPrompt = computed(() => {
   return parts.length ? `A ${parts.join(" ")}` : "—";
 });
 
+// src/data/styleDescriptions.js
+const styleDescriptions = {
+  grunge: `in grunge fashion style — inspired by 1990s Seattle subculture, emphasizing a raw, layered, and worn-in look. Key elements include distressed or ripped fabrics, and combat boots. The palette leans toward muted and earthy tones, creating a casual and rebellious atmosphere.`,
+
+  minimalist: `in minimalist fashion style — focused on simplicity, clean lines, and a "less is more" philosophy. Outfits feature smooth silhouettes, and refined tailoring with high-quality materials. Accessories are minimal, emphasizing proportion, structure, and timeless elegance.`,
+
+  lolita: `in Lolita fashion style — inspired by Victorian and Rococo aesthetics, emphasizing modesty, femininity, and elegance. Characterized by lace trims, puffed sleeves, ribbon bows, and delicate accessories like Mary Jane shoes, bonnets, and parasols, creating a soft doll-like impression.`,
+
+  goth: `in Gothic fashion style — rooted in Victorian and post-punk aesthetics, combining dark romanticism, elegance, and mystery. Features include black or deep-toned garments, lace, velvet, corset details, puffed sleeves, and silver accessories with cross or rose motifs. The mood is moody, introspective, and poetic.`,
+
+  punk: `in punk fashion style — expressing rebellion, DIY creativity, and anti-establishment attitude. Key elements include leather, ripped shirts, metal studs, band tees, safety pins, and unconventional layering. The look is aggressive, raw, and intentionally imperfect.`,
+
+  "hip-hop": `in hip-hop fashion style — originating from 1980s–1990s street culture in the U.S., blending comfort, bold branding, and attitude. Outfits feature baggy oversized clothes, tracksuits, sneakers, and gold accessories. The look communicates confidence, rhythm, and individuality.` 
+};
+
 function buildFullSDPrompt(sel) {
-  // This matches your spec: header + weighted attributes + BREAK + lighting + framing
+  // === Header ===
   const header =
-    "RAW photo, best quality, photo-realistic, 1 girl, beautiful white shiny skin, short hair";
+    "RAW photo, best quality, photo-realistic, 1 beautiful adult female model, short hair,";
 
-  const parts = [];
-  if (sel.color) parts.push(sel.color);
-  if (sel.silhouette) parts.push(sel.silhouette);
-  if (sel.material) parts.push(sel.material);
-  if (sel.garment) parts.push(sel.garment);
-  if (sel.pattern && sel.pattern !== "none")
-    parts.push(`with ${sel.pattern} pattern`);
-  if (sel.style) parts.push(`in ${sel.style} style`);
-  const natural = parts.length ? "A " + parts.join(" ") : "";
+  // === Garment core ===
+  const garmentParts = [];
 
-  const weighted = [];
-  const csg = [sel.color, sel.silhouette, sel.garment]
-    .filter(Boolean)
-    .join(" ");
-  if (csg) weighted.push(`((${csg}:1.5))`);
-  if (sel.material) weighted.push(`((${sel.material}:1.4))`);
-  if (sel.pattern && sel.pattern !== "none")
-    weighted.push(`((${sel.pattern}:1.3))`);
-  if (sel.style) weighted.push(`((${sel.style} style:1.2))`);
+  // e.g. "red blazer jacket in camouflage pattern"
+  if (sel.color) garmentParts.push(sel.color);
+  if (sel.silhouette) garmentParts.push(sel.silhouette);
+  if (sel.garment) garmentParts.push(sel.garment);
 
-  const lighting = "black background, studio light, soft light";
+  let garmentDesc = garmentParts.join(" ");
+
+  // Add pattern
+  if (sel.pattern && sel.pattern.toLowerCase() !== "none") {
+    garmentDesc += ` in ${sel.pattern} pattern`;
+  }
+
+  // === Material ===
+  let materialPart = "";
+  if (sel.material) {
+    if (sel.material.toLowerCase() === "silk") {
+      materialPart = `shiny ${sel.material} material`;
+    } else {
+      materialPart = `${sel.material} material`;
+    }
+  }
+  // === Restrict pattern placement ===
+  const plainClothing =
+    sel.garment && sel.pattern && sel.pattern.toLowerCase() !== "none"
+      ? `clothing other than the ${sel.garment} is plain color`
+      : "";
+
+  // === Style description ===
+  const stylePart = sel.style
+    ? `in ${sel.style} fashion style — ${
+        styleDescriptions[sel.style] || `${sel.style} style`
+      }`
+    : "";
+
+  // === Lighting & composition ===
+  const lighting = "light background, soft light,";
   const framing =
-    "(full body, standing pose, from head to toe, neutral stance, long shot, entire body visible, centered)";
+    "full body shot, standing pose, model from head to toe, neutral stance, long shot, entire body visible, centered";
 
-  return `${header}, ${natural}, ${weighted.join(
-    ", "
-  )}\nBREAK\n${lighting},\n${framing}`;
+  // === Combine ===
+  const prompt = [
+    header,
+    `${garmentDesc}${materialPart ? `, ${materialPart}` : ""},`,
+    plainClothing,
+    stylePart,
+    lighting,
+    framing,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  // For debugging in browser console
+  console.log("🧠 Final SD Prompt:\n", prompt);
+
+  return prompt;
 }
 
-function describe() {
-  if (step.value === 1 && selection.garment)
-    return descriptions[selection.garment] || "";
-  return "Choose an option on the left to see its description and references.";
-}
+
+
 
 function cap(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+const isLoading = ref(false);
 const image = ref(null);
 const apiPrompt = ref("");
 
+const progress = ref(0);
+const previewImage = ref(null);
+
 async function generate() {
+  if (isLoading.value) return; // prevent double-clicks
+  isLoading.value = true;
+  progress.value = 0;
+  previewImage.value = null;
+
+  let poller = null;
+
   try {
-    const prompt = buildFullSDPrompt(selection); // build the full prompt here
-    const res = await axios.post("http://127.0.0.1:8000/generate", {
-      prompt, // Route B: POST /generate expects { prompt }
-    });
+    const prompt = buildFullSDPrompt(selection);
+
+    // 2️⃣ Log it to the browser console
+    console.log("🧠 Sending prompt to Stable Diffusion:\n", prompt);
+
+    // --- start polling progress ---
+    poller = setInterval(async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/progress");
+        const data = await res.json();
+        progress.value = data.progress || 0;
+        previewImage.value = data.current_image || null;
+      } catch (err) {
+        console.error("Progress polling failed:", err);
+      }
+    }, 1000);
+
+    // --- send generation request ---
+    const res = await axios.post("http://127.0.0.1:8000/generate", { prompt });
     image.value = res.data.images?.[0] || null;
     apiPrompt.value = res.data.prompt || prompt;
     step.value = 7;
+
   } catch (e) {
     alert("Generation failed. Is FastAPI / SD running?\n" + e);
+  } finally {
+    if (poller) clearInterval(poller);
+    progress.value = 100;
+    isLoading.value = false;
   }
 }
 
-async function regenerate() {
-  // call generate again with the same selection
-  await generate();
-}
 
 function slug(s = "") {
   return s.toLowerCase().replace(/[’']/g, "").replace(/\s+/g, "-");
@@ -366,14 +460,32 @@ const refImages = computed(() => {
   return [];
 });
 
-function saveImage() {
+async function saveImage() {
   if (!image.value) return;
-  const a = document.createElement("a");
-  a.href = "data:image/png;base64," + image.value;
-  a.download = `design_${Date.now()}.png`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+
+  try {
+    // If your image is already the raw base64 (no data URL prefix), send directly.
+    // If you ever pass a full data URL, strip it:
+    // const raw = image.value.replace(/^data:image\/\w+;base64,/, "");
+
+    const payload = {
+      image_base64: image.value,                 // raw base64 from SD
+      filename: `design_${Date.now()}.png`,      // optional; backend can auto-name
+    };
+
+    const res = await axios.post("http://127.0.0.1:8000/save_image", payload);
+    const { ok, saved_path } = res.data || {};
+
+    if (ok) {
+      console.log("✅ Saved at:", saved_path);
+      alert("Saved to:\n" + saved_path);
+    } else {
+      alert("Save failed. Please check the backend logs.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Save failed: " + (err?.response?.data?.detail || err.message));
+  }
 }
 
 function resetAll() {
@@ -437,6 +549,9 @@ html,
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
     Noto Sans, Arial;
 }
+.app{
+  min-width: 1280px;
+}
 
 .left {
   margin-top: 50px;
@@ -480,8 +595,14 @@ html,
   min-height: 80px;
   white-space: normal;
   overflow: auto;
-  max-height: 180px;
+  min-height: 200px;
 }
+
+.center
+{
+  min-width: 650px;
+}
+
 .refs {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -491,12 +612,17 @@ html,
   background: #ffffff1a;
   border-radius: 0px;
   height: 200px;
+  width: 130px;
+  object-fit: fill;
 }
+
 .nav {
-  margin-top: 16px;
-  display: flex;
-  gap: 10px;
+    margin-top: 28px;
+    display: flex;
+    gap: 64px;
+    justify-content: center;
 }
+
 .nav button {
   padding: 10px 14px;
   border-radius: 999px;
@@ -534,11 +660,17 @@ html,
 }
 
 .result-layout {
-  display: grid;
-  grid-template-columns: 1fr 460px 200px;
-  gap: 24px;
-  align-items: start;
-  margin-top: 10px;
+    display: grid;
+    grid-template-columns: 304px 496px 216px;
+    gap: 83px;
+    align-items: start;
+    margin-top: 10px;
+}
+
+.result-image{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .result-prompt h2,
@@ -554,18 +686,7 @@ html,
   white-space: pre-wrap;
 }
 
-.image-wrap {
-  background: #111;
-  border-radius: 12px;
-  overflow: hidden;
-  width: 460px;
-  /* keep your image around poster-like size */
-}
-.image-wrap img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
+
 
 .result-actions {
   display: flex;
@@ -602,6 +723,20 @@ html,
   place-items: center;
   color: #ccc;
 }
+
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  color: #777;
+  font-size: 14px;
+  border-radius: 12px;
+  opacity: 0.8;
+}
+
 
 /* top navigation */
 .stepper {
@@ -675,4 +810,71 @@ html,
 .start-btn:hover {
   filter: brightness(1.05);
 }
+
+.image-wrap {
+  position: relative;
+  width: 460px;                /* set the display size you want */
+  aspect-ratio: 7 / 10;        /* keeps height stable (no jump) */
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #151515;         /* fallback while preview not ready */
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+}
+
+.image-wrap img {
+  display: block;
+  width: 100%;
+}
+
+
+/* The image always fills the frame */
+.result-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 200ms ease, opacity 200ms ease;
+}
+
+/* Slight blur/dim while generating (optional) */
+.result-img.loading {
+  filter: blur(2px) brightness(0.8);
+}
+
+/* Progress overlay */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;       /* put bar near bottom; use center if preferred */
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%);
+  padding: 16px;
+}
+
+.overlay-card {
+  width: 88%;
+  max-width: 320px;
+  backdrop-filter: blur(6px);
+}
+
+.overlay-title {
+  margin: 0 0 6px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  text-align: center;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+
+
 </style>

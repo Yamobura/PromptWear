@@ -1,4 +1,4 @@
-import os
+import os, time, base64
 import requests
 from typing import Optional, List
 from fastapi import FastAPI, HTTPException
@@ -15,60 +15,27 @@ app.add_middleware(
 )
 
 SD_URL = os.getenv("SD_URL", "http://127.0.0.1:7860")
-DEFAULT_NEG = "(low quality, worst quality:1.3), negative_hand-neg, ((hard light))"
+SAVE_DIR = r"C:\Users\user\Documents\lidia\lidia\thesis\PromptWear\Result images"
+os.makedirs(SAVE_DIR, exist_ok=True)
 
 class GenerateBody(BaseModel):
     # core prompt
     prompt: str
-    negative_prompt: Optional[str] = DEFAULT_NEG
-
-    # sampler (use Karras variant in the name; don’t send separate scheduler)
-    steps: int = 30
-    sampler_name: str = "DPM++ 2M SDE Karras"
-    cfg_scale: float = 7.0
-
-    # seed/size
-    seed: Optional[int] = None
-    width: int = 512
-    height: int = 640
-
-    # hires fix
-    enable_hr: bool = True
-    denoising_strength: float = 0.35
-    hr_scale: float = 2.0
-    hr_upscaler: str = "8xNMKDSuperscale_150000G"
-    hr_second_pass_steps: int = 10
-    hr_sampler_name: Optional[str] = None  # omit if None
-
-    # Forge expects a list, not None
-    hr_additional_modules: Optional[List[str]] = ["Use same choices"]
 
     # build a clean A1111/Forge payload
     def to_sd_payload(self) -> dict:
         p = {
             "prompt": self.prompt,
-            "negative_prompt": self.negative_prompt,
-            "steps": self.steps,
-            "sampler_name": self.sampler_name,
-            "cfg_scale": self.cfg_scale,
-            "seed": self.seed if self.seed is not None else -1,
-            "width": self.width,
-            "height": self.height,
-            "send_images": True,
-            "save_images": False,
-        }
-        if self.enable_hr:
-            p.update({
-                "enable_hr": True,
-                "denoising_strength": self.denoising_strength,
-                "hr_scale": self.hr_scale,
-                "hr_upscaler": self.hr_upscaler,
-                "hr_second_pass_steps": self.hr_second_pass_steps,
-                # IMPORTANT: always send a list here for Forge
-                "hr_additional_modules": self.hr_additional_modules or ["Use same choices"],
-            })
-            if self.hr_sampler_name:
-                p["hr_sampler_name"] = self.hr_sampler_name  # only include if set
+            "batch_size": 1,
+            "steps": 30,
+            "seed": -1,
+            "distilled_cfg_scale": 3.5,
+            "cfg_scale": 1,
+            "width": 896,
+            "height": 1152,
+            "sampler_name": "Euler",
+            "scheduler": "Simple"
+            }
         return p
 
 def sd_txt2img(payload: dict) -> List[str]:
@@ -90,3 +57,47 @@ def generate(body: GenerateBody):
     payload = body.to_sd_payload()
     images = sd_txt2img(payload)
     return {"prompt": body.prompt, "images": images}
+
+@app.get("/progress")
+def get_progress():
+    try:
+        r = requests.get(f"{SD_URL}/sdapi/v1/progress?skip_current_image=false", timeout=10)
+        if r.status_code >= 400:
+            raise HTTPException(status_code=502, detail=f"SD API error {r.status_code}: {r.text}")
+        data = r.json()
+        return {
+            "progress": round(data.get("progress", 0) * 100, 2),
+            "eta_relative": data.get("eta_relative", 0),
+            "sampling_step": data.get("state", {}).get("sampling_step", 0),
+            "sampling_steps": data.get("state", {}).get("sampling_steps", 0),
+            "current_image": data.get("current_image"),  # optional: base64 preview
+        }
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"SD progress API request failed: {e}")
+
+
+
+class SaveBody(BaseModel):
+    image_base64: str           # just the raw base64, no data URL prefix
+    filename: Optional[str] = None  # optional custom name
+
+@app.post("/save_image")
+def save_image(body: SaveBody):
+    # pick a filename
+    name = body.filename or f"design_{int(time.time())}.png"
+    # sanitize just in case
+    name = name.replace("\\", "_").replace("/", "_")
+    path = os.path.join(SAVE_DIR, name)
+
+    try:
+        img_bytes = base64.b64decode(body.image_base64)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid base64 image: {e}")
+
+    try:
+        with open(path, "wb") as f:
+            f.write(img_bytes)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+
+    return {"ok": True, "saved_path": path, "filename": name}
