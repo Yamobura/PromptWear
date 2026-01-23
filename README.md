@@ -1,9 +1,9 @@
 # PromptWear
 
 PromptWear is a web-based AI assistant developed as part of a master’s thesis in Fashion Technology.  
-The system is designed to support **beginner-level fashion design ideation** by transforming structured design inputs into AI-generated visual concepts.
+The system is designed to support beginner-level fashion design ideation by transforming structured design inputs into AI-generated visual concepts.
 
-Unlike fully automated design tools, PromptWear focuses on **creativity support**, helping users explore design directions, silhouettes, styles, and materials during the early ideation stage.
+Unlike fully automated design tools, PromptWear focuses on creativity support, helping users explore design directions, silhouettes, styles, and materials during the early ideation stage.
 
 ## Key Features
 
